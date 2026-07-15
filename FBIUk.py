@@ -381,4 +381,4 @@ except Exception as pdf_err:
 
 else:
     st.info("💡 Petunjuk Penggunaan: Silakan unggah berkas data laporan keuangan Anda di atas untuk membuka dasbor tren grafik visual dan menyusun laporan intelijen AI otomatis.")
-```
+
