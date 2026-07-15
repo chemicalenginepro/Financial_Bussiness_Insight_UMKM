@@ -52,15 +52,17 @@ if "ai_report" not in st.session_state:
     st.session_state.ai_report = ""
 
 # ==============================================================================
-# 2. GERBANG OTENTIKASI SISTEM (SUPABASE AUTH SHIELD LAYER)
+# 2. GERBANG OTENTIKASI SISTEM (TOKEN SEKALI PAKAI & ANTI-BOCOOR MULTI DEVICE)
 # ==============================================================================
-
 if not st.session_state.logged_in:
-    st.title("🔐 Akses Terproteksi")
-    st.caption("Business Insight AI - Solusi Analisis Keuangan Premium")
+    st.title("🔐 Akses Premium Terproteksi")
+    st.caption("Business Insight AI - Silakan Masuk atau Daftarkan Lisensi Anda")
     
-    tab_login, tab_register = st.tabs(["🔑 Masuk (Login)", "📝 Daftar Akun Baru"])
+    tab_login, tab_register = st.tabs(["🔑 Masuk (Login)", "📝 Aktivasi Akun Mandiri"])
     
+    # --------------------------------------------------------------------------
+    # TAB 1: FORMULIR LOGIN (DENGAN KUNCI PERANGKAT KETAT & BYPASS ADMIN)
+    # --------------------------------------------------------------------------
     with tab_login:
         login_email = st.text_input("Email Pengguna:", key="login_em")
         login_password = st.text_input("Kata Sandi:", type="password", key="login_pw")
@@ -71,34 +73,119 @@ if not st.session_state.logged_in:
             elif not login_email or not login_password:
                 st.warning("Mohon isi seluruh kolom email dan kata sandi!")
             else:
+                # DATA CONFIG UTK BYPASS PERANGKAT OWNER (MAS)
+                EMAIL_OWNER_UTAMA = "borris.setyawan@gmail.com" # <--- GANTI JADI EMAIL MAS
+                
                 try:
-                    # Memeriksa data login ke server sistem otentikasi enterprise Supabase
-                    response = supabase.auth.sign_in_with_password({"email": login_email, "password": login_password})
-                    st.session_state.logged_in = True
-                    st.session_state.user_email = login_email
-                    st.success("🎯 Login Berhasil! Membuka gerbang aplikasi...")
-                    st.rerun()
+                    # 1. Cek email dan password ke server Supabase Auth
+                    auth_resp = supabase.auth.sign_in_with_password({"email": login_email, "password": login_password})
+                    user_info = auth_resp.user
+                    
+                    # 2. Ambil Sidik Jari browser fisik yang sedang dipakai login saat ini
+                    device_fingerprint = st.context.headers.get("User-Agent", "Unknown-Device")
+                    
+                    # 3. Ambil daftar perangkat yang sudah terikat di metadata akun user ini
+                    registered_devices = user_info.user_metadata.get("allowed_devices", [])
+                    
+                    # JALUR KHUSUS A: Jika yang Login adalah Mas (Owner), Loloskan Perangkat Apa Saja!
+                    if login_email.strip().lower() == EMAIL_OWNER_UTAMA.lower():
+                        st.session_state.logged_in = True
+                        st.session_state.user_email = login_email
+                        st.rerun()
+                        
+                    # JALUR KETAT B: Untuk Pembeli (Wajib Kunci 2 Perangkat Pertama)
+                    else:
+                        if device_fingerprint in registered_devices:
+                            st.session_state.logged_in = True
+                            st.session_state.user_email = login_email
+                            st.rerun()
+                        else:
+                            if len(registered_devices) < 2:
+                                # Jika jatah perangkat masih di bawah 2, kunci perangkat baru ini otomatis
+                                registered_devices.append(device_fingerprint)
+                                supabase.auth.admin.update_user_by_id(
+                                    user_info.id, 
+                                    attributes={"user_metadata": {"allowed_devices": registered_devices}}
+                                )
+                                st.session_state.logged_in = True
+                                st.session_state.user_email = login_email
+                                st.success("✅ Perangkat baru Anda berhasil diverifikasi dan dikunci!")
+                                st.rerun()
+                            else:
+                                # Jika perangkat ke-3 milik temannya mencoba menyusup, BLOKIR TOTAL!
+                                st.error("❌ Akses Ditolak! Akun lisensi ini sudah terkunci maksimal pada 2 perangkat pertama Anda (1 Laptop + 1 HP). Hubungi Admin untuk reset perangkat baru.")
                 except Exception as auth_err:
-                    st.error(f"❌ Gagal Masuk: Kombinasi Email atau Password salah! ({str(auth_err)})")
-                    
+                    st.error("❌ Gagal Masuk: Kombinasi Email atau Password salah!")
+
+    # --------------------------------------------------------------------------
+    # TAB 2: FORMULIR DAFTAR MANDIRI (TOKEN SEKALI PAKAI + BYPASS REGISTER ADMIN)
+    # --------------------------------------------------------------------------
     with tab_register:
-        st.info("Pendaftaran ini ditujukan bagi klien baru Anda untuk mendapatkan hak akses berbayar.")
-        reg_email = st.text_input("Masukkan Email Klien Baru:", key="reg_em")
-        reg_password = st.text_input("Buat Kata Sandi Klien (Minimal 6 Karakter):", type="password", key="reg_pw")
+        st.info("Pendaftaran mandiri hanya berlaku bagi pembeli resmi yang memiliki Token Aktivasi Sekali Pakai.")
+        reg_email = st.text_input("Masukkan Email Anda:", key="reg_em")
+        reg_password = st.text_input("Buat Kata Sandi Baru (Min. 6 Karakter):", type="password", key="reg_pw")
+        input_token = st.text_input("Masukkan Token Aktivasi Pembelian Anda:", type="password", key="reg_token")
         
-        if st.button("Daftarkan Akun Klien"):
+        if st.button("Aktifkan Akun Saya"):
             if supabase is None:
-                st.error("Sistem Hubungan Database terputus.")
-            elif not reg_email or len(reg_password) < 6:
-                st.warning("Email wajib diisi dan kata sandi minimal harus berjumlah 6 karakter!")
+                st.error("Sistem pangkalan data terputus.")
+            elif not reg_email or len(reg_password) < 6 or not input_token:
+                st.warning("Mohon isi seluruh kolom email, kata sandi, dan token aktivasi!")
             else:
+                # TOKEN CONFIG UTK BYPASS PENDAFTARAN AWAL OWNER
+                TOKEN_SUPER_ADMIN = "ADMIN-SUPER-SIDOARJO"  # <--- MAS BISA DAFTAR PAKAI TOKEN INI TANPA UTUT DATA SUPABASE
+                
                 try:
-                    # Mendaftarkan email pengguna baru ke tabel internal Supabase secara terenkripsi
-                    supabase.auth.sign_up({"email": reg_email, "password": reg_password})
-                    st.success("✅ Pendaftaran Akun Berhasil! Silakan instruksikan klien Anda untuk memeriksa kotak masuk/spam email mereka guna konfirmasi aktivasi.")
-                except Exception as reg_err:
-                    st.error(f"❌ Proses Pendaftaran Akun Gagal: {str(reg_err)}")
+                    # JALUR MASTER 1: Jika Mas yang mendaftar pertama kali
+                    if reg_email.strip().lower() == EMAIL_OWNER_UTAMA.lower() and input_token.strip() == TOKEN_SUPER_ADMIN:
+                        supabase.auth.sign_up({"email": reg_email, "password": reg_password})
+                        st.success("👑 Selamat Datang Super Admin! Akun berhasil diaktifkan secara instan. Silakan masuk via tab Login.")
                     
+                    # JALUR KOMERSIAL 2: Untuk Pembeli (Wajib Validasi dan Hanguskan Token)
+                    else:
+                        token_query = supabase.table("activation_tokens").select("is_used").eq("token_code", input_token.strip()).execute()
+                        
+                        if len(token_query.data) == 0:
+                            st.error("❌ Token Aktivasi Tidak Valid! Periksa kembali kode kupon Anda.")
+                        elif token_query.data[0]["is_used"] == True:
+                            st.error("❌ Token Akses Gagal! Token ini sudah hangus karena telah digunakan oleh pembeli lain.")
+                        else:
+                            # Daftarkan pembeli ke database
+                            supabase.auth.sign_up({"email": reg_email, "password": reg_password})
+                            
+                            # Hanguskan token detik itu juga agar tidak bisa dipakai email lain
+                            supabase.table("activation_tokens").update({"is_used": True}).eq("token_code", input_token.strip()).execute()
+                            
+                            st.success("🎉 Aktivasi Sukses! Token Anda resmi dihanguskan. Silakan pindah ke tab 'Masuk (Login)' untuk mengunci 2 perangkat pertama Anda.")
+                except Exception as reg_err:
+                    st.error(f"❌ Pendaftaran Gagal: Email mungkin sudah terdaftar. ({str(reg_err)})")
+                    
+    st.stop()  # Mengunci script sisa ke bawah
+
+                    
+                    # JALUR UMUM 2: Untuk Pembeli (Wajib Validasi Token & Email di Database)
+                    else:
+                        # A. Cek apakah email ini sudah pernah terdaftar di Supabase Auth sebelumnya
+                        # Jika email sudah terdaftar, Supabase sign_up otomatis memblokir secara internal.
+                        
+                        # B. Cek ke database Supabase apakah token ada dan belum terpakai
+                        token_query = supabase.table("activation_tokens").select("is_used").eq("token_code", input_token.strip()).execute()
+                        
+                        if len(token_query.data) == 0:
+                            st.error("❌ Token Aktivasi Tidak Valid! Periksa kembali kode kupon Anda.")
+                        elif token_query.data[0]["is_used"] == True:
+                            st.error("❌ Token Akses Gagal! Token ini sudah hangus karena telah digunakan oleh pembeli lain.")
+                        else:
+                            # C. Daftarkan akun pembeli ke Supabase Auth
+                            supabase.auth.sign_up({"email": reg_email, "password": reg_password})
+                            
+                            # D. Hanguskan token di database agar tidak bisa dipakai oleh email mana pun lagi
+                            supabase.table("activation_tokens").update({"is_used": True}).eq("token_code", input_token.strip()).execute()
+                            
+                            st.success("🎉 Aktivasi Sukses! Token Anda resmi dihanguskan. Silakan pindah ke tab 'Masuk (Login)' untuk mengunci 2 perangkat pertama Anda (1 Laptop + 1 HP).")
+                except Exception as reg_err:
+                    st.error(f"❌ Pendaftaran Gagal: Email mungkin sudah terdaftar atau jaringan sibuk. ({str(reg_err)})")
+
     st.stop()  # Mengunci script secara brutal agar halaman inti tidak bisa di-bypass lewat inspect element
 
 # ==============================================================================
