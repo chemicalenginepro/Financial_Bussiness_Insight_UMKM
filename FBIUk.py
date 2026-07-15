@@ -60,7 +60,7 @@ if not st.session_state.logged_in:
     st.caption("Business Insight AI - Silakan Masuk atau Daftarkan Akun Anda")
     
     # KONFIGURASI EMAIL OWNER (MAS) AGAR BEBAS AKURAT PERANGKAT ANYAR
-    EMAIL_OWNER_UTAMA = "email_pribadi_anda@gmail.com"  # <--- GANTI JADI EMAIL MAS (HURUF KECIL SEMUA)
+    EMAIL_OWNER_UTAMA = "borris.setyawan@gmail.com"  # <--- GANTI JADI EMAIL MAS (HURUF KECIL SEMUA)
     
     tab_login, tab_register = st.tabs(["🔑 Masuk (Login)", "📝 Daftar Akun Baru"])
     
