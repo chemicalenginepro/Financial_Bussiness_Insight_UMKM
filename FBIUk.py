@@ -50,13 +50,16 @@ if "extracted_text" not in st.session_state:
     st.session_state.extracted_text = ""
 if "ai_report" not in st.session_state:
     st.session_state.ai_report = ""
-
 # ==============================================================================
 # 2. GERBANG OTENTIKASI SISTEM (TOKEN SEKALI PAKAI & ANTI-BOCOOR MULTI DEVICE)
 # ==============================================================================
 if not st.session_state.logged_in:
     st.title("🔐 Akses Premium Terproteksi")
     st.caption("Business Insight AI - Silakan Masuk atau Daftarkan Lisensi Anda")
+    
+    # KUNFI CONFIG UTAMA (DITARUH DI LUAR AGAR KEDUA TAB BISA MEMBACA TANPA ERROR)
+    EMAIL_OWNER_UTAMA = "borris.setyawan@gmail.com" # <--- GANTI JADI EMAIL MAS
+    TOKEN_SUPER_ADMIN = "ADMIN-SUPER-SIDOARJO"       # <--- TOKEN KHUSUS UNTUK MAS
     
     tab_login, tab_register = st.tabs(["🔑 Masuk (Login)", "📝 Aktivasi Akun Mandiri"])
     
@@ -73,9 +76,6 @@ if not st.session_state.logged_in:
             elif not login_email or not login_password:
                 st.warning("Mohon isi seluruh kolom email dan kata sandi!")
             else:
-                # DATA CONFIG UTK BYPASS PERANGKAT OWNER (MAS)
-                EMAIL_OWNER_UTAMA = "borris.setyawan@gmail.com" # <--- GANTI JADI EMAIL MAS
-                
                 try:
                     # 1. Cek email dan password ke server Supabase Auth
                     auth_resp = supabase.auth.sign_in_with_password({"email": login_email, "password": login_password})
@@ -132,9 +132,6 @@ if not st.session_state.logged_in:
             elif not reg_email or len(reg_password) < 6 or not input_token:
                 st.warning("Mohon isi seluruh kolom email, kata sandi, dan token aktivasi!")
             else:
-                # TOKEN CONFIG UTK BYPASS PENDAFTARAN AWAL OWNER
-                TOKEN_SUPER_ADMIN = "ADMIN-SUPER-SIDOARJO"  # <--- MAS BISA DAFTAR PAKAI TOKEN INI TANPA UTUT DATA SUPABASE
-                
                 try:
                     # JALUR MASTER 1: Jika Mas yang mendaftar pertama kali
                     if reg_email.strip().lower() == EMAIL_OWNER_UTAMA.lower() and input_token.strip() == TOKEN_SUPER_ADMIN:
@@ -161,6 +158,7 @@ if not st.session_state.logged_in:
                     st.error(f"❌ Pendaftaran Gagal: Email mungkin sudah terdaftar. ({str(reg_err)})")
                     
     st.stop()  # Mengunci script sisa ke bawah
+
 
                     
                     # JALUR UMUM 2: Untuk Pembeli (Wajib Validasi Token & Email di Database)
