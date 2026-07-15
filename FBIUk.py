@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -62,7 +61,7 @@ if not st.session_state.logged_in:
     st.caption("Business Insight AI - Silakan Masuk atau Daftarkan Lisensi Anda")
 
     # KUNCI CONFIG UTAMA (DITARUH DI LUAR AGAR KEDUA TAB BISA MEMBACA TANPA ERROR)
-    EMAIL_OWNER_UTAMA = "email_pribadi_anda@gmail.com"  # <--- GANTI JADI EMAIL MAS
+    EMAIL_OWNER_UTAMA = "borris.setyawan@gmail.com"  # <--- GANTI JADI EMAIL MAS
     TOKEN_SUPER_ADMIN = "ADMIN-SUPER-SIDOARJO"  # <--- TOKEN KHUSUS UNTUK MAS
 
     tab_login, tab_register = st.tabs(["🔑 Masuk (Login)", "📝 Aktivasi Akun Mandiri"])
